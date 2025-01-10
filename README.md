@@ -35,7 +35,7 @@ cd AES-python
 
 #### 加密文件
 ```python
-# 方法1：自动生成密钥
+
 python encrypt.py
 
 ```
