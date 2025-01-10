@@ -30,6 +30,7 @@ RCON = [
 def sub_bytes(state):
     """
     通过S-box替换状态矩阵中的每个字节
+    Replace each byte in the state matrix using the S-box
     """
     for i in range(4):
         for j in range(4):
@@ -44,6 +45,13 @@ def shift_rows(state):
     第三行循环左移2位
     第四行循环左移3位
     """
+    """
+    Perform row shifting operation on the state matrix
+    The first row is not shifted
+    The second row is cyclically shifted left by 1 byte
+    The third row is cyclically shifted left by 2 bytes
+    The fourth row is cyclically shifted left by 3 bytes
+    """
     # 第二行左移1位
     state[1] = state[1][1:] + state[1][:1]
     # 第三行左移2位
@@ -55,6 +63,7 @@ def shift_rows(state):
 def xtime(a):
     """
     在GF(2^8)域上的乘法运算
+    Perform multiplication in the GF(2^8) field
     """
     if a & 0x80:
         return ((a << 1) ^ 0x1B) & 0xFF
@@ -63,6 +72,7 @@ def xtime(a):
 def mix_single_column(col):
     """
     对状态矩阵的单列进行列混合操作
+    Perform column mixing operation on a single column of the state matrix
     """
     t = col[0] ^ col[1] ^ col[2] ^ col[3]
     u = col[0]
@@ -74,6 +84,7 @@ def mix_single_column(col):
 
 def mix_columns(state):
     """
+    Perform column mixing operation on the state matrix
     对状态矩阵进行列混合操作
     """
     for i in range(4):
@@ -86,6 +97,7 @@ def mix_columns(state):
 def add_round_key(state, round_key):
     """
     将轮密钥与状态矩阵进行异或操作
+    Perform XOR operation between the round key and the state matrix
     """
     for i in range(4):
         for j in range(4):
@@ -95,24 +107,31 @@ def add_round_key(state, round_key):
 def key_expansion(key):
     """
     密钥扩展函数，生成轮密钥
+    Key expansion function, generate round keys
     """
     # 初始化扩展密钥数组
+    # Initialize the expanded key array
     w = [[0] * 4 for _ in range(44)]
     
     # 复制初始密钥到w的前4个字
+    # Copy the initial key to the first 4 words of w
     for i in range(4):
         w[i] = [key[4*i], key[4*i+1], key[4*i+2], key[4*i+3]]
     
     # 生成剩余的字
+    # Generate the remaining words
     for i in range(4, 44):
         temp = w[i-1][:]
         
         if i % 4 == 0:
             # 循环左移
+            # Circular left shift
             temp = temp[1:] + temp[:1]
             # S-box替换
+            # S-box substitution
             temp = [SBOX[b] for b in temp]
             # 与轮常量异或
+            # XOR with the round constant
             temp[0] ^= RCON[i//4]
         
         for j in range(4):
@@ -123,18 +142,21 @@ def key_expansion(key):
 def create_state_matrix(block):
     """
     将16字节的数据块转换为4x4状态矩阵
+    Convert a 16-byte data block to a 4x4 state matrix
     """
     return [[block[i + 4*j] for j in range(4)] for i in range(4)]
 
 def state_matrix_to_bytes(state):
     """
     将状态矩阵转换回字节序列
+    Convert the state matrix back to a byte sequence
     """
     return bytes(state[i][j] for j in range(4) for i in range(4))
 
 def pad_data(data):
     """
     使用PKCS7填充方案对数据进行填充
+    Pad the data using the PKCS7 padding scheme
     """
     pad_length = 16 - (len(data) % 16)
     padding = bytes([pad_length] * pad_length)
@@ -143,13 +165,16 @@ def pad_data(data):
 def encrypt_block(block, expanded_key):
     """
     加密单个16字节数据块
+    Encrypt a single 16-byte data block
     """
     state = create_state_matrix(block)
     
     # 初始轮密钥加
+    # Initial round key addition
     state = add_round_key(state, [expanded_key[i] for i in range(4)])
     
     # 9个标准轮
+    # 9 standard rounds
     for round in range(1, 10):
         state = sub_bytes(state)
         state = shift_rows(state)
@@ -157,6 +182,7 @@ def encrypt_block(block, expanded_key):
         state = add_round_key(state, [expanded_key[4*round + i] for i in range(4)])
     
     # 最后一轮（无列混合）
+    # The last round (without column mixing)
     state = sub_bytes(state)
     state = shift_rows(state)
     state = add_round_key(state, [expanded_key[40 + i] for i in range(4)])
@@ -166,6 +192,7 @@ def encrypt_block(block, expanded_key):
 def generate_key():
     """
     生成一个随机的16字节（128位）密钥
+    Generate a random 16-byte (128-bit) key
     """
     return os.urandom(16)
 
@@ -173,26 +200,35 @@ def encrypt_file(input_path, output_path, key=None):
     """
     加密文件的主函数
     如果未提供密钥，则生成一个新的随机密钥并保存
+    Main function for encrypting files
+    If the key is not provided, generate a new random key and
+    save it
     """
     # 如果没有提供密钥，生成新密钥
+    # If the key is not provided, generate a new key
     if key is None:
         key = generate_key()
         # 保存密钥到文件
+        # Save the key to a file
         with open(input_path + '.key', 'wb') as f:
             f.write(key)
-        print(f"密钥已保存到: {input_path}.key")
+        print(f"Key has been saved to: {input_path}.key")
     
     # 扩展密钥
+    # Key expansion
     expanded_key = key_expansion(list(key))
     
     # 读取输入文件
+    # Read the input file
     with open(input_path, 'rb') as f:
         data = f.read()
     
     # 填充数据
+    # Pad the data
     padded_data = pad_data(data)
     
     # 加密
+    # Encryption
     encrypted_data = bytearray()
     for i in range(0, len(padded_data), 16):
         block = padded_data[i:i+16]
@@ -200,20 +236,25 @@ def encrypt_file(input_path, output_path, key=None):
         encrypted_data.extend(encrypted_block)
     
     # 写入加密后的数据
+    # Write the encrypted data
     with open(output_path, 'wb') as f:
         f.write(encrypted_data)
     
-    print(f"文件已加密并保存到: {output_path}")
+    print(f"File has been encrypted and saved to: {output_path}")
 
 if __name__ == "__main__":
     # 使用示例
-    input_file = "原文.txt"
-    output_file = "加密后.txt"
+    # Example
+    input_file = "plaintext.txt"
+    output_file = "encrypted.txt"
     
     # 不提供密钥，程序会自动生成并保存密钥
+    # If the key is not provided, generate a new key and save it
     encrypt_file(input_file, output_file)
     
     # 或者提供自己的密钥
+    # Or provide your own key
+    
     # with open('my_key.txt', 'rb') as f:
     #     key = f.read(16)
     # encrypt_file(input_file, output_file, key)

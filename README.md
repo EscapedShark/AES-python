@@ -16,8 +16,8 @@
 - 详细的代码注释
 
 ### 文件说明
-- `aes_encrypt.py`: 加密程序
-- `aes_decrypt.py`: 解密程序
+- `encrypt.py`: 加密程序
+- `decrypt.py`: 解密程序
 - `README.md`: 使用说明文档
 
 ### 环境要求
@@ -28,7 +28,7 @@
 直接下载或克隆项目文件即可使用：
 ```bash
 git clone [项目地址]
-cd aes-encryption
+cd AES-python
 ```
 
 ### 使用方法
@@ -36,21 +36,16 @@ cd aes-encryption
 #### 加密文件
 ```python
 # 方法1：自动生成密钥
-python aes_encrypt.py
+python encrypt.py
 
-# 方法2：使用指定的密钥文件
-from aes_encrypt import encrypt_file
-encrypt_file('原文.txt', '加密后.txt', 'my_key.txt')
 ```
 
 #### 解密文件
 ```python
-# 使用密钥文件解密
-python aes_decrypt.py
 
-# 或者在代码中调用
-from aes_decrypt import decrypt_file
-decrypt_file('加密后.txt', '解密后.txt', '密钥.txt')
+python decrypt.py
+
+
 ```
 
 ### 注意事项
@@ -83,8 +78,8 @@ This is an AES-128 file encryption and decryption program implemented in Python.
 - Detailed code comments
 
 ### Files
-- `aes_encrypt.py`: Encryption program
-- `aes_decrypt.py`: Decryption program
+- `encrypt.py`: Encryption program
+- `decrypt.py`: Decryption program
 - `README.md`: Documentation
 
 ### Requirements
@@ -95,29 +90,24 @@ This is an AES-128 file encryption and decryption program implemented in Python.
 Simply download or clone the project files:
 ```bash
 git clone [project-url]
-cd aes-encryption
+cd AES-python
 ```
 
 ### Usage
 
 #### Encrypting Files
 ```python
-# Method 1: Auto-generate key
-python aes_encrypt.py
 
-# Method 2: Use specific key file
-from aes_encrypt import encrypt_file
-encrypt_file('original.txt', 'encrypted.txt', 'my_key.txt')
+python encrypt.py
+
+
 ```
 
 #### Decrypting Files
 ```python
-# Use key file to decrypt
-python aes_decrypt.py
 
-# Or call in code
-from aes_decrypt import decrypt_file
-decrypt_file('encrypted.txt', 'decrypted.txt', 'key.txt')
+python decrypt.py
+
 ```
 
 ### Important Notes

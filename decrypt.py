@@ -41,6 +41,7 @@ INV_SBOX = [
 ]
 
 # 轮常量（与加密相同）
+# Round constants (same as encryption)
 RCON = [
     0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d, 0x9a
 ]
@@ -48,6 +49,7 @@ RCON = [
 def inv_sub_bytes(state):
     """
     使用逆S-box进行逆字节替换
+    use the inverse S-box for inverse byte substitution
     """
     for i in range(4):
         for j in range(4):
@@ -61,18 +63,27 @@ def inv_shift_rows(state):
     第二行循环右移1位
     第三行循环右移2位
     第四行循环右移3位
+    Inverse row shifting operation
+    First row does not move
+    Second row cyclically shifts right by 1 bit
+    Third row cyclically shifts right by 2 bits
+    Fourth row cyclically shifts right by 3 bits
     """
     # 第二行右移1位
+    # Second row shifts right by 1 bit
     state[1] = state[1][-1:] + state[1][:-1]
     # 第三行右移2位
+    # Third row shifts right by 2 bits
     state[2] = state[2][-2:] + state[2][:-2]
     # 第四行右移3位
+    # Fourth row shifts right by 3 bits
     state[3] = state[3][-3:] + state[3][:-3]
     return state
 
 def xtime(a):
     """
     在GF(2^8)上的乘法运算（与加密相同）
+    Multiplication operation in GF(2^8) (same as encryption)
     """
     if a & 0x80:
         return ((a << 1) ^ 0x1B) & 0xFF
@@ -81,6 +92,7 @@ def xtime(a):
 def multiply(x, y):
     """
     在GF(2^8)上的乘法
+    Multiplication in GF(2^8)
     """
     result = 0
     for i in range(8):
@@ -93,6 +105,7 @@ def multiply(x, y):
 def inv_mix_single_column(col):
     """
     对单列进行逆列混合操作
+    Perform inverse column mixing operation on a single column
     """
     a = [0] * 4
     for i in range(4):
@@ -107,6 +120,7 @@ def inv_mix_single_column(col):
 def inv_mix_columns(state):
     """
     对状态矩阵进行逆列混合操作
+    Perform inverse column mixing operation on the state matrix
     """
     for i in range(4):
         column = [state[j][i] for j in range(4)]
@@ -118,6 +132,7 @@ def inv_mix_columns(state):
 def add_round_key(state, round_key):
     """
     轮密钥加操作（与加密相同）
+    Perform round key addition operation (same as encryption)
     """
     for i in range(4):
         for j in range(4):
@@ -127,6 +142,7 @@ def add_round_key(state, round_key):
 def key_expansion(key):
     """
     密钥扩展函数（与加密相同）
+    Key expansion function (same as encryption)
     """
     w = [[0] * 4 for _ in range(44)]
     
@@ -149,37 +165,43 @@ def key_expansion(key):
 def create_state_matrix(block):
     """
     将16字节的数据块转换为4x4状态矩阵（与加密相同）
+    Convert a 16-byte data block to a 4x4 state matrix (same as encryption)
     """
     return [[block[i + 4*j] for j in range(4)] for i in range(4)]
 
 def state_matrix_to_bytes(state):
     """
     将状态矩阵转换回字节序列（与加密相同）
+    Convert the state matrix back to a byte sequence (same as encryption)
     """
     return bytes(state[i][j] for j in range(4) for i in range(4))
 
 def unpad_data(data):
     """
     移除PKCS7填充
+    Remove PKCS7 padding
     """
     pad_length = data[-1]
     if pad_length > 16:
-        raise ValueError("无效的填充")
+        raise ValueError("Invalid padding")
     for i in range(1, pad_length + 1):
         if data[-i] != pad_length:
-            raise ValueError("无效的填充")
+            raise ValueError("Invalid padding")
     return data[:-pad_length]
 
 def decrypt_block(block, expanded_key):
     """
     解密单个16字节数据块
+    Decrypt a single 16-byte data block
     """
     state = create_state_matrix(block)
     
     # 初始轮密钥加
+    # Initial round key addition
     state = add_round_key(state, [expanded_key[40 + i] for i in range(4)])
     
     # 9个标准轮（逆序）
+    # 9 standard rounds (in reverse order)
     for round in range(9, 0, -1):
         state = inv_shift_rows(state)
         state = inv_sub_bytes(state)
@@ -187,6 +209,7 @@ def decrypt_block(block, expanded_key):
         state = inv_mix_columns(state)
     
     # 最后一轮
+    # The last round
     state = inv_shift_rows(state)
     state = inv_sub_bytes(state)
     state = add_round_key(state, [expanded_key[i] for i in range(4)])
@@ -196,22 +219,27 @@ def decrypt_block(block, expanded_key):
 def decrypt_file(input_path, output_path, key_path):
     """
     解密文件的主函数
+    decrypt the main function of the file
     """
     # 读取密钥
+    # Read the key
     with open(key_path, 'rb') as f:
         key = f.read(16)
     
     # 扩展密钥
+    # Expanded key
     expanded_key = key_expansion(list(key))
     
     # 读取加密的文件
+    # Read the encrypted file
     with open(input_path, 'rb') as f:
         encrypted_data = f.read()
     
     if len(encrypted_data) % 16 != 0:
-        raise ValueError("加密的数据长度必须是16的倍数")
+        raise ValueError("The length of the encrypted data must be a multiple of 16")
     
     # 解密
+    # Decrypt
     decrypted_data = bytearray()
     for i in range(0, len(encrypted_data), 16):
         block = encrypted_data[i:i+16]
@@ -219,25 +247,28 @@ def decrypt_file(input_path, output_path, key_path):
         decrypted_data.extend(decrypted_block)
     
     # 移除填充
+    # Remove padding
     try:
         decrypted_data = unpad_data(decrypted_data)
     except ValueError as e:
-        print(f"警告：移除填充时出错：{e}")
-        print("继续保存原始解密数据...")
+        print(f"Warning: Error removing padding: {e}")
+        print("Continuing to save raw decrypted data...")
     
     # 写入解密后的数据
+    # Write the decrypted data
     with open(output_path, 'wb') as f:
         f.write(decrypted_data)
     
-    print(f"文件已解密并保存到: {output_path}")
+    print(f"File has been decrypted and saved to: {output_path}")
 
 if __name__ == "__main__":
     # 使用示例
-    input_file = "加密后.txt"
-    output_file = "解密后.txt"
-    key_file = "原文.txt.key"  # 或其他密钥文件路径
+    # Example
+    input_file = "encrypted.txt"
+    output_file = "decrypted.txt"
+    key_file = "plaintext.txt.key"  # or other key file path
     
     try:
         decrypt_file(input_file, output_file, key_file)
     except Exception as e:
-        print(f"解密失败：{str(e)}")
+        print(f"Decryption failed: {str(e)}")
